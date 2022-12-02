@@ -5,5 +5,5 @@ Disclaimer: I'm learning along the way so things will be _ugly_
 Run day _N_ challenge with:
 
 ```
-go run src/N.go
+go run src/N/main.go
 ```

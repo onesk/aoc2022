@@ -1,37 +1,11 @@
 package main
 
 import (
-    "os"
     "fmt"
     "sort"
-    "bufio"
     "strconv"
-    "path/filepath"
+	"../utils"
 )
-
-func readLines(directory string, filename string) ([]string) {
-    path := filepath.Join(directory, filename)
-
-    file, _ := os.Open(path)
-    defer file.Close()
-
-    scanner := bufio.NewScanner(file)
-
-    var lines []string
-    for scanner.Scan() {
-        lines = append(lines, scanner.Text())
-    }
-
-    return lines
-}
-
-func max(a, b int) int {
-    if a > b {
-        return a
-    }
-
-    return b
-}
 
 func groupCalories(lines []string) []int {
     var grouped []int
@@ -57,7 +31,7 @@ func partOne(lines []string) {
     maxCalories := 0
 
     for _, totalCalories := range groupCalories(lines) {
-        maxCalories = max(maxCalories, totalCalories)
+        maxCalories = utils.Max(maxCalories, totalCalories)
     }
 
     fmt.Println(maxCalories)
@@ -77,13 +51,17 @@ func partTwo(lines []string) {
 }
 
 func tests() {
-    partOne(readLines("tests", "1.txt"))
-    partTwo(readLines("tests", "1.txt"))
+    test := utils.ReadLines("tests", "1.txt")
+
+    partOne(test)
+    partTwo(test)
 }
 
 func main() {
     tests()
 
-    partOne(readLines("inputs", "1.txt"))
-    partTwo(readLines("inputs", "1.txt"))
+    puzzle := utils.ReadLines("inputs", "1.txt")
+
+    partOne(puzzle)
+    partTwo(puzzle)
 }
