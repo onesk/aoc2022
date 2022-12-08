@@ -23,77 +23,110 @@ func parse(rows []string) trees {
     return trees(ret)
 }
 
-type dir struct {
-    di, dj int
-}
+func sameShapeInts(trees trees, num int) [][]int {
+    ret := make([][]int, 0, len(trees))
 
-var dirs [4]dir = [4]dir{{-1, 0}, {+1, 0}, {0, -1}, {0, +1}}
+    for _, row := range(trees) {
+        newRow := make([]int, len(row))
 
-func inrange(trees trees, i, j int) bool {
-    if i < 0 || i >= len(trees) {
-        return false
-    }
-
-    if j < 0 || len(trees) == 0 || j >= len(trees[0]) {
-        return false
-    }
-
-    return true
-}
-
-func cast(trees trees, i, j, h int, d dir) (visible int, anyHigher bool) {
-    visible, anyHigher = 0, false
-
-    for true {
-        i, j = i + d.di, j + d.dj
-
-        if !inrange(trees, i, j) {
-            break
+        for j, _ := range newRow {
+            newRow[j] = num
         }
 
-        visible++
-
-        if trees[i][j] >= h {
-            anyHigher = true
-            break
-        }
+        ret = append(ret, newRow)
     }
 
+    return ret
+}
+
+const horStackCap = 10
+const maxHeight = 10000
+
+// positions are 1-indexed
+// h decrease, pos increase
+type stackItem struct {
+    h, pos int
+}
+
+type horstack []stackItem
+
+func newHorstack() horstack {
+    return make([]stackItem, 0, horStackCap)
+}
+
+func (s *horstack) rightmost() stackItem {
+    l := len(*s)
+
+    if l == 0 {
+        return stackItem{maxHeight, 0}
+    }
+
+    return (*s)[l-1]
+}
+
+func (s *horstack) pop() {
+    *s = (*s)[:len(*s)-1]
+}
+
+func (s *horstack) update(h, pos int) (vis int, out bool) {
+    for s.rightmost().h < h {
+        s.pop()
+    }
+
+    vis, out = pos - s.rightmost().pos, len(*s) == 0
+
+    *s = append(*s, stackItem{h, pos})
     return
 }
 
-func visibleFromOutside(trees trees, i, j, h int) bool {
-    for _, d := range dirs {
-        _, anyHigher := cast(trees, i, j, h, d)
+func mapAccum(trees trees, each func (i, j, vis int, out bool)) {
+    rows, cols := len(trees), 0
 
-        if !anyHigher {
-            return true
+    // map each row, both directions
+    for i, row := range trees {
+        cols = len(row)
+
+        forward, backward := newHorstack(), newHorstack()
+
+        for j, h := range row {
+            vis, out := forward.update(h, j)
+            each(i, j, vis, out)
+
+            backJ := cols-j-1
+            vis, out = backward.update(row[backJ], j)
+            each(i, backJ, vis, out)
         }
     }
 
-    return false
-}
+    // map each column, both directions
+    for j := 0; j < cols; j++ {
+        forward, backward := newHorstack(), newHorstack()
 
-func scenicScore(trees trees, i, j, h int) int {
-    product := 1
+        for i := 0; i < rows; i++ {
+            vis, out := forward.update(trees[i][j], i)
+            each(i, j, vis, out)
 
-    for _, d := range dirs {
-        visible, _ := cast(trees, i, j, h, d)
-        product *= visible
+            backI := rows-1-i
+            vis, out = backward.update(trees[backI][j], i)
+            each(backI, j, vis, out)
+        }
     }
-
-    return product
 }
 
 func partOne(rows []string) {
     trees := parse(rows)
+    outs := sameShapeInts(trees, 0)
+
+    mapAccum(trees, func (i, j, vis int, out bool) {
+        if out {
+            outs[i][j] = 1
+        }
+    })
 
     sum := 0
-    for i, hrow := range trees {
-        for j, h := range hrow {
-            if visibleFromOutside(trees, i, j, h) {
-                sum += 1
-            }
+    for _, row := range outs {
+        for _, out := range row {
+            sum += out
         }
     }
 
@@ -102,15 +135,20 @@ func partOne(rows []string) {
 
 func partTwo(rows []string) {
     trees := parse(rows)
+    outs := sameShapeInts(trees, 1)
 
-    score := 0
-    for i, hrow := range trees {
-        for j, h := range hrow {
-            score = utils.Max(score, scenicScore(trees, i, j, h))
+    mapAccum(trees, func (i, j, vis int, out bool) {
+        outs[i][j] *= vis
+    })
+
+    max := 0
+    for _, row := range outs {
+        for _, out := range row {
+            max = utils.Max(max, out)
         }
     }
 
-    fmt.Println(score)
+    fmt.Println(max)
 }
 
 func tests() {
